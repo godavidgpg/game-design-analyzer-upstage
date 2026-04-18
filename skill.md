@@ -7,7 +7,7 @@ allowed-tools: Bash(python *), Read
 # 게임 기획 분석기
 
 ## 스크립트 경로
-모든 스크립트는 `<이 레포를 클론한 경로>/` 기준:
+모든 스크립트는 `C:/Users/vudrk/Desktop/AI Projects/` 기준:
 - `scripts/analyze_game.py` — 전문가 6인 프레임워크 분석 (핵심)
 - `scripts/fetch_reviews.py` — Steam 리뷰 수집 + Solar Pro 3 패턴 분석
 - `scripts/compare_games.py` — Solar Embedding 기반 경쟁작 유사도 비교
@@ -15,10 +15,7 @@ allowed-tools: Bash(python *), Read
 - `references/expert_philosophies.md` — 전문가 철학 참고 문서
 
 ## 환경 설정
-```
-UPSTAGE_API_KEY=<your_upstage_api_key>
-BASE_DIR=<이 레포를 클론한 경로>
-```
+`UPSTAGE_API_KEY`는 Claude Code settings.json의 env에 설정됨. 별도 지정 불필요.
 
 ---
 
@@ -44,15 +41,13 @@ BASE_DIR=<이 레포를 클론한 경로>
 
 #### 1-A. Steam에서 자동 수집 (권장)
 ```bash
-cd "<BASE_DIR>" && \
-UPSTAGE_API_KEY="$UPSTAGE_API_KEY" \
+cd "C:/Users/vudrk/Desktop/AI Projects" && \
 python scripts/collect_data.py --steam "<게임명 또는 URL>" --output output/<게임명>_info.json
 ```
 
 #### 1-B. raw 텍스트 파일에서 수집
 ```bash
-cd "<BASE_DIR>" && \
-UPSTAGE_API_KEY="$UPSTAGE_API_KEY" \
+cd "C:/Users/vudrk/Desktop/AI Projects" && \
 python scripts/collect_data.py --input <파일경로> --output output/<게임명>_info.json
 ```
 
@@ -67,8 +62,7 @@ collect_data.py가 하는 것:
 
 Steam URL에서 appid 추출 가능한 경우 자동 실행:
 ```bash
-cd "<BASE_DIR>" && \
-UPSTAGE_API_KEY="$UPSTAGE_API_KEY" \
+cd "C:/Users/vudrk/Desktop/AI Projects" && \
 python scripts/fetch_reviews.py --appid "<appid 또는 URL 또는 게임명>" \
   --language koreana --count 100 --output output/<게임명>_reviews.json
 ```
@@ -85,8 +79,7 @@ fetch_reviews.py 출력:
 ### Step 3: 전문가 프레임워크 분석 (핵심)
 
 ```bash
-cd "<BASE_DIR>" && \
-UPSTAGE_API_KEY="$UPSTAGE_API_KEY" \
+cd "C:/Users/vudrk/Desktop/AI Projects" && \
 python scripts/analyze_game.py \
   --game-data output/<게임명>_info.json \
   [--review-data output/<게임명>_reviews.json] \
@@ -111,8 +104,7 @@ python scripts/analyze_game.py \
 
 "비교", "vs", "경쟁작", "포지셔닝" 등이 요청에 포함된 경우:
 ```bash
-cd "<BASE_DIR>" && \
-UPSTAGE_API_KEY="$UPSTAGE_API_KEY" \
+cd "C:/Users/vudrk/Desktop/AI Projects" && \
 python scripts/compare_games.py \
   --target "<타겟 게임>" \
   --competitors "<경쟁작1>,<경쟁작2>,<경쟁작3>" \
@@ -130,8 +122,7 @@ compare_games.py가 하는 것:
 ### Step 5: 최종 리포트 생성
 
 ```bash
-cd "<BASE_DIR>" && \
-UPSTAGE_API_KEY="$UPSTAGE_API_KEY" \
+cd "C:/Users/vudrk/Desktop/AI Projects" && \
 python scripts/analyze_game.py \
   --game-data output/<게임명>_info.json \
   [--review-data output/<게임명>_reviews.json] \
@@ -165,22 +156,40 @@ python scripts/analyze_game.py \
 
 ---
 
-## 사용 예시
+## 평가 시나리오
 
-```
-/game-design-analyzer Hades
-/game-design-analyzer https://store.steampowered.com/app/1145360/
-/game-design-analyzer Hollow Knight 경쟁작 비교 포함해서
-/game-design-analyzer Baldur's Gate 3 vs Divinity Original Sin 2 비교
-/game-design-analyzer /path/to/game_info.json
-```
+### Eval 1: 단일 게임 이름 분석
+**입력**: `Hollow Knight`
+**기대 결과**:
+- `output/hollow_knight_info.json` 생성 (title, core_mechanics 포함)
+- `output/hollow_knight_reviews.json` 생성 (analysis 필드 존재)
+- `output/hollow_knight_report.docx` 생성 (6개 전문가 섹션 + 통합 분석 포함)
+- 총 소요 시간 5분 이내
+**실패 조건**: JSON 파싱 오류, 빈 분석 섹션, 한국어 미출력
+
+### Eval 2: Steam URL 직접 입력
+**입력**: `https://store.steampowered.com/app/1145360/` (Hades)
+**기대 결과**:
+- appid `1145360` 자동 추출
+- Steam API에서 게임 정보 정상 수집 (`cc=US` 파라미터 사용)
+- `output/hades_report.docx` 생성
+**실패 조건**: `success: false` Steam API 오류, 게임명 추출 실패
+
+### Eval 3: 경쟁작 비교 요청
+**입력**: `Hollow Knight vs Hades Dead Cells 비교`
+**기대 결과**:
+- `compare_games.py` 실행 (`--target "Hollow Knight" --competitors "Hades,Dead Cells"`)
+- `output/hollow_knight_compare.json`에 `similarity_matrix` 배열 존재
+- `most_similar`, `least_similar` 필드 존재
+- 포지셔닝 맵 + 블루오션/레드오션 분석 포함
+**실패 조건**: 임베딩 API 오류, 유사도 수치 미출력
 
 ---
 
 ## Gotchas
 
-- **Solar Pro 3 한국어**: assistant prefix + 영어 CoT 후처리(strip_english_cot)로 처리됨
 - **Steam 검색 1순위**: 정확한 이름이나 URL 권장 (예: "Hades" → "Hades II" 잡힐 수 있음)
+- **Solar Pro 3 JSON 이중 중괄호**: 응답이 이미 `{`로 시작하면 prepend 금지 — `collect_data.py`에서 처리됨
 - **리뷰 언어**: 한국어 10건 미만이면 영어로 자동 재시도 후 Solar로 한국어 분석
 - **임베딩 차원**: solar-embedding-1-large-passage는 4096차원, 벡터 비교는 정규화 후 코사인
 - **전체 분석 시간**: API 호출 7+회 → 약 3~5분 소요
